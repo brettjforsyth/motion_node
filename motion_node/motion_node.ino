@@ -2,7 +2,7 @@
 
 UMS3 ums3;
 
-#define timeSeconds 10 //the time to wait after motion isn’t detected to say motion has stopped
+#define timeSeconds 10 
 
 
 // Set GPIOs for LED and PIR Motion Sensor
