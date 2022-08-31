@@ -54,6 +54,7 @@ void loop() {
     Serial.println("Motion detected...");
     Serial.println(digitalRead(motionSensor));
     digitalWrite(led, HIGH);
+     //So if the starttimer is true then it means a motion has been detected. this is where you should set greenStartCountDown to false and also turn off pixelpower
   }
   // Turn off the LED after the number of seconds defined in the timeSeconds variable
  
@@ -68,9 +69,9 @@ void loop() {
     greenStartTime = millis();
   } //closes the first if
 
-   if(greenStartTime && (now - greenStartTime > (greenOffTime*1000))) {
+   if(greenStartTime && (now - greenStartTime > (greenOffTime*1000))) { //this is likely also an issue. the greenStartCountDown should be the first argument in the if statement here. Otherwise it will also have a value and always be true
       ums3.setPixelPower(false);
-      greenStartTime = false;
+      greenStartTime = false; // this should be greenStartCountDown
    } 
     
 }
