@@ -1,9 +1,12 @@
 #include <esp_now.h>
 #include <WiFi.h>
+#include <UMS3.h>
 
 // Variable to store if sending data was successful
 String success;
 
+
+UMS3 ums3;
 //Structure example to send data
 //Must match the receiver structure
 typedef struct struct_message {
@@ -61,6 +64,7 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
+  Serial.println(WiFi.macAddress());
 
   // Once ESPNow is successfully Init, we will register for Send CB to
   // get the status of Trasnmitted packet
@@ -75,6 +79,8 @@ void setup() {
   if (esp_now_add_peer(&peerInfo) != ESP_OK){
     Serial.println("Failed to add peer");
     return;
+  }else{
+    Serial.println("peer add success");
   }
   // Register for a callback function that will be called when data is received
   esp_now_register_recv_cb(OnDataRecv);
@@ -82,6 +88,13 @@ void setup() {
   node_message.node_name = "wakeup";
   node_message.node_type = 1;
   broadcast_time = millis();
+
+  ums3.begin();
+
+  // Brightness is 0-255. We set it to 1/3 brightness here
+  ums3.setPixelBrightness(255 / 3);
+  ums3.setPixelPower(true);
+  ums3.setPixelColor(0,255,0);
 }
 
 
