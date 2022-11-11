@@ -4,7 +4,8 @@
 
 // Variable to store if sending data was successful
 String success;
-
+const int motionSensor = 5;
+boolean motion = false;
 
 UMS3 ums3;
 //Structure example to send data
@@ -50,12 +51,22 @@ uint8_t broadcastAddress[] = {0xF4, 0x12, 0xFA, 0x4E, 0xED, 0x84};
 //Thais: question don't we have to declare uint8_t before the constant 
 unsigned long broadcast_time;
 
+void IRAM_ATTR detectsMovement() {
+  motion = true;
+}
+
+
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB
   }
+  // PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(motionSensor, INPUT_PULLUP);
+  // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
+  attachInterrupt(digitalPinToInterrupt(motionSensor), detectsMovement, RISING);  
+
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
@@ -100,7 +111,7 @@ void setup() {
 
 
 void loop() {
-  if(millis() - broadcast_time > 10000){
+  if(motion){
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &node_message, sizeof(node_message));
     
     if (result == ESP_OK) {
@@ -109,7 +120,7 @@ void loop() {
     else {
       Serial.println("Error sending the data");
     }
-    broadcast_time = millis();
+    motion =false
   }
     
 }
