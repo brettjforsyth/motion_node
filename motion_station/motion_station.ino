@@ -1,51 +1,3 @@
-/**
-   ESPNOW - Basic communication - Master
-   Date: 26th September 2017
-   Author: Arvind Ravulavaru <https://github.com/arvindr21>
-   Purpose: ESPNow Communication between a Master ESP32 and multiple ESP32 nodes
-   Description: This sketch consists of the code for the Master module.
-   Resources: (A bit outdated)
-   a. https://espressif.com/sites/default/files/documentation/esp-now_user_guide_en.pdf
-   b. http://www.esploradores.com/practica-6-conexion-esp-now/
-
-   << This Device Master >>
-
-   Flow: Master
-   Step 1 : ESPNow Init on Master and set it in STA mode
-   Step 2 : Start scanning for Nodes ESP32 (we have added a prefix of `Nodes` to the SSID of Nodes for an easy setup)
-   Step 3 : Once found, add Nodes as peer
-   Step 4 : Register for send callback
-   Step 5 : Start Transmitting data from Master to Nodes(s)
-
-   Flow: Nodes
-   Step 1 : ESPNow Init on Nodes
-   Step 2 : Update the SSID of Nodes with a prefix of `Nodes`
-   Step 3 : Set Nodes in AP mode
-   Step 4 : Register for receive callback and wait for data
-   Step 5 : Once data arrives, print it in the serial monitor
-
-   Note: Master and Nodes have been defined to easily understand the setup.
-         Based on the ESPNOW API, there is no concept of Master and Nodes.
-         Any devices can act as master or salve.
-
-
-  // Sample Serial log with 1 master & 2 nodes
-      Found 12 devices 
-      1: Nodes:24:0A:C4:81:CF:A4 [24:0A:C4:81:CF:A5] (-44)
-      3: Nodes:30:AE:A4:02:6D:CC [30:AE:A4:02:6D:CD] (-55)
-      2 Nodes(s) found, processing..
-      Processing: 24:A:C4:81:CF:A5 Status: Already Paired
-      Processing: 30:AE:A4:2:6D:CD Status: Already Paired
-      Sending: 9
-      Send Status: Success
-      Last Packet Sent to: 24:0a:c4:81:cf:a5
-      Last Packet Send Status: Delivery Success
-      Send Status: Success
-      Last Packet Sent to: 30:ae:a4:02:6d:cd
-      Last Packet Send Status: Delivery Success
-
-*/
-
 #include <esp_now.h>
 #include <WiFi.h>
 #include <UMS3.h>
@@ -62,6 +14,17 @@ void IRAM_ATTR powerDownInt() {
 void IRAM_ATTR configInt() {
   configMode++;
 }
+
+//Structure example to send data
+//Must match the receiver structure
+typedef struct struct_message {
+    boolean motion;
+    String node_name;
+    int node_type; //0 = camera trigger, 1 = wakeup motion node, 2 = trigger motion node
+    String mac_addr;
+} struct_message;
+// Create a struct_message called BME280Readings to hold sensor readings
+struct_message station_message;
 
 void powerDown(){
   WiFi.disconnect(true);
@@ -204,17 +167,21 @@ void manageNodes() {
 }
 
 
-uint8_t data = 0;
+String station_mac = "";
 // send data
-void sendData() {
-  data++;
+void sendConfigData() {
+  station_mac = WiFi.macAddress();
   for (int i = 0; i < NodeCnt; i++) {
     const uint8_t *peer_addr = nodes[i].peer_addr;
     if (i == 0) { // print only for first Nodes
       Serial.print("Sending: ");
-      Serial.println(data);
+      Serial.println(station_mac);
     }
-    esp_err_t result = esp_now_send(peer_addr, &data, sizeof(data));
+    station_message.mac_addr = station_mac;
+    station_message.node_name = "Station 1";
+    station_message.node_type = 0;
+
+    esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &station_message, sizeof(station_message));
     Serial.print("Send Status: ");
     if (result == ESP_OK) {
       Serial.println("Success");
@@ -296,7 +263,7 @@ void loop() {
       manageNodes();
       // pair success or already paired
       // Send data to device
-      sendData();
+      sendConfigData();
     } else {
       // No Nodes found to process
     }
