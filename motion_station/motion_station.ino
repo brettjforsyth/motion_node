@@ -21,7 +21,7 @@ typedef struct struct_message {
     boolean motion;
     String node_name;
     int node_type; //0 = camera trigger, 1 = wakeup motion node, 2 = trigger motion node
-    String mac_addr;
+    int message_type; //0 = not, 1 = configuration
 } struct_message;
 // Create a struct_message called BME280Readings to hold sensor readings
 struct_message station_message;
@@ -50,6 +50,7 @@ void wakeup_reason(){
 // Global copy of Nodes
 #define NUMNODES 2
 RTC_DATA_ATTR esp_now_peer_info_t nodes[NUMNODES] = {};
+RTC_DATA_ATTR int nodeTypes[NUMNODES] = {};
 RTC_DATA_ATTR int NodeCnt = 0;
 
 #define CHANNEL 1
@@ -74,6 +75,7 @@ void InitESPNow() {
 void ScanForNodes() {
   int8_t scanResults = WiFi.scanNetworks();
   //reset nodes
+  //TODO:: Need to stop clearing every scan and actually seeing if the scanned wifi addresses exist or not
   memset(nodes, 0, sizeof(nodes));
   NodeCnt = 0;
   Serial.println("");
@@ -167,20 +169,24 @@ void manageNodes() {
 }
 
 
-String station_mac = "";
+//String station_mac = "";
 // send data
 void sendConfigData() {
-  station_mac = WiFi.macAddress();
+  //station_mac = WiFi.macAddress();
+
+
   for (int i = 0; i < NodeCnt; i++) {
     const uint8_t *peer_addr = nodes[i].peer_addr;
-    if (i == 0) { // print only for first Nodes
-      Serial.print("Sending: ");
-      Serial.println(station_mac);
-    }
-    station_message.mac_addr = station_mac;
+    // if (i == 0) { // print only for first Nodes
+    //   Serial.print("Sending: ");
+    //   Serial.println(station_mac);
+    // }
+    //station_message.mac_addr = "F4:12:FA:4F:A5:B8";
     station_message.node_name = "Station 1";
     station_message.node_type = 0;
-
+    station_message.message_type = 1;
+    //Serial.print("struct mac: ");
+    //Serial.println(station_message.mac_addr);
     esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &station_message, sizeof(station_message));
     Serial.print("Send Status: ");
     if (result == ESP_OK) {
@@ -211,6 +217,14 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("Last Packet Sent to: "); Serial.println(macStr);
   Serial.print("Last Packet Send Status: "); Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
+// callback when data is recv from Master
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
+  Serial.println("OnDataRecv");
+  //ums3.setPixelColor(UMS3::colorWheel(150));
+  struct_message* test = (struct_message*) data;   
+   Serial.println(test->node_name);
+   Serial.println(test->motion);
+}
 
 void setup() {
   wakeup_reason();
@@ -225,8 +239,13 @@ void setup() {
   ums3.setPixelBrightness(255 / 3);
   ++bootCount;
   Serial.begin(115200);
+  // while (!Serial) {
+  //   ; // wait for serial port to connect. Needed for native USB
+  // }
   //Set device in STA mode to begin with
   WiFi.mode(WIFI_STA);
+  //station_mac = WiFi.macAddress();
+  //Serial.println(station_mac[0]);
   Serial.println("ESPNow/Multi-Nodes/Master Example");
   // This is the mac address of the Master in Station Mode
   Serial.print("STA MAC: "); Serial.println(WiFi.macAddress());
@@ -235,6 +254,7 @@ void setup() {
   // Once ESPNow is successfully Init, we will register for Send CB to
   // get the status of Trasnmitted packet
   esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(OnDataRecv);
 }
 
 void loop() {
@@ -247,7 +267,7 @@ void loop() {
     Serial.println("power down");
     powerDown();
   }
-  ums3.setPixelPower(false);
+  
   // In the loop we scan for Nodes
   if(configMode % 2 == 1){
     ums3.setPixelPower(true);
@@ -267,16 +287,22 @@ void loop() {
     } else {
       // No Nodes found to process
     }
-
+    for(int x = 0; x < NodeCnt; x++){
+      ums3.setPixelBrightness(0);
+      delay(100);
+      ums3.setPixelBrightness(255 / 3);
+    }
     // wait for 3seconds to run the logic again
     delay(1000);
+  }else{
+    ums3.setPixelPower(false);
   }
-  if (NodeCnt > 0) {
-    Serial.print("node count: ");
-    Serial.println(NodeCnt);
-    Serial.print("Nodes: ");
-    Serial.write((byte*)&nodes, sizeof(nodes));
-    delay(1000);
-  }
+  // if (NodeCnt > 0) {
+  //   Serial.print("node count: ");
+  //   Serial.println(NodeCnt);
+  //   Serial.print("Nodes: ");
+  //   Serial.write((byte*)&nodes, sizeof(nodes));
+  //   delay(1000);
+  // }
 }
  
