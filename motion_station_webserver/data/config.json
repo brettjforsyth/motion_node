@@ -1,0 +1,5 @@
+{
+"pollingTimer":2,
+"firstNodeAwakeTime":4,
+"stationNodeAwakeTime":30
+}

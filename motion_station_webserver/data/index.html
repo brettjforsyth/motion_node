@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>MotionStation Admin</title>
+	<link rel="stylesheet" href="bulma.min.css">
+    
+</head>
+<body>
+	<section class="section">
+	    <div class="container">
+			
+
+				 <form action="/config_update">
+					<div class="columns">
+						<div class="column">
+							<div class="field">
+								<label class="label">Station Polling Time (seconds)</label>
+								<div class="control">
+									<input id="polling_timer" name="pollingTimer" class="is-large" min="1" max="120" value="%pollingTimer%" step="1" type="number">
+									
+								</div>
+							</div>
+						</div>
+						<div class="column">
+							<div class="field">
+								<label class="label">Node 1 Awake Time (seconds)</label>
+								<div class="control">
+									<input id="first_node_awake_time" name="firstNodeAwakeTime" class="is-large" min="1" max="120" value="%firstNodeAwakeTime%" step="1" type="number">
+									
+								</div>
+							</div>
+						</div>
+						<div class="column">
+							<div class="field">
+								<label class="label">Station Awake Time (seconds)</label>
+								<div class="control">
+									<input id="station_node_awake_time" name="stationNodeAwakeTime" class="is-large" min="1" max="120" value="%stationNodeAwakeTime%" step="1" type="number">
+									
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="columns">
+						<div class="column">
+							<input type="submit" value="Save" class="button is-primary">
+							
+						</div>
+					</div>
+				 </form>
+				 <div class="columns">
+						<div class="column">
+							<textarea class="textarea" id="messages"></textarea>
+							
+						</div>
+							<div class="column">
+							<input type="submit" value="Open Socket" class="button is-primary" id="socketStart">
+							
+						</div>
+					</div>
+	    </div>
+  	
+</section>
+
+
+		
+		
+			
+
+	<script src="jquery-3.6.2.min.js"></script>
+	<script>
+		$('#get-reg-form').submit(function(e){
+	    e.preventDefault();
+	    //var data = new FormData(form);
+			$.ajax({
+				url: '/getReg',
+				type: 'GET',
+				data: $('#get-reg-form').serialize(),
+				processData: false,
+				success:function(d, s) {
+					console.log('Register Polled!') 
+				},
+					error: function (a, b, c) {
+				}
+			});
+		});
+
+		
+		let webSocket = new WebSocket('ws://192.168.1.1/ws');
+    webSocket.onerror = function(event) {
+        onError(event)
+    };
+
+    webSocket.onopen = function(event) {
+        onOpen(event)
+    };
+
+    webSocket.onmessage = function(event) {
+        onMessage(event)
+    };
+
+    function onMessage(event) {
+        //alert(event.data);
+        document.getElementById('messages').innerHTML += event.data +'\n';
+       
+
+    }
+
+    function onOpen(event) {
+        document.getElementById('messages').innerHTML += 'Now Connection established' +'\n';
+    }
+
+    function onError(event) {
+        document.getElementById('messages').innerHTML += 'error:' + event +'\n';
+    }
+
+    function start() {
+    	  document.getElementById('messages').innerHTML += "Start Socket" +'\n'
+    		
+        webSocket.send('test');
+        return false;
+    }
+    
+		$('#socketStart').click(function() {
+			start()
+		})
+	</script>
+</body>
+</html>
